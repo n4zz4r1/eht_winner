@@ -1,0 +1,45 @@
+# Rust/Cargo generated files
+Cargo.lock
+/target/
+
+# Compiled files
+*.rs.bk
+
+# IntelliJ IDEA
+.idea/
+winner.iml
+
+# Visual Studio Code
+.vscode/
+
+# Build artifacts and temporary files
+debug/
+release/
+.cargo/
+
+# Dependency directories
+vendor/
+.rust/
+
+# Crates.io index
+.crates.toml
+
+# macOS metadata
+.DS_Store
+
+# Editor-specific files
+*.swp
+*~
+
+# Documentation
+/doc/
+/target/doc/
+
+# Others
+
+curl.sh
+loop.sh
+.env
+
+
+scripts
