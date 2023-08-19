@@ -16,6 +16,8 @@ use std::process::exit;
 
 use clap::Parser;
 use colored::Colorize;
+use crossterm::execute;
+use crossterm::terminal::{Clear, ClearType};
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use json::JsonValue;
@@ -35,7 +37,9 @@ mod greed;
 mod revshell;
 mod shared;
 mod tools;
+mod cheatsheets;
 
+use std::io::{self, Write};
 #[tokio::main]
 async fn main() {
     let greed = Cli::parse();
@@ -45,14 +49,12 @@ async fn main() {
     let lport_tool = 8080;
     let lport_revshell = 8081;
 
-    println!(" ┌──────────────────────────┐   ");
-    println!(
-        " │  {}{}                │",
-        Icons::Medal.to_string().bold().yellow(),
-        "Winner".yellow().bold()
-    );
-    println!(" │    {}            │", "by n4zz4r1".white());
-    println!(" └──────────────────────────┘   ");
+    execute!(
+            std::io::stdout(),
+            Clear(ClearType::All),
+            crossterm::cursor::MoveTo(0, 0)
+        );
+
 
     // 1. env configuration
     let lhost: IpAddr = if should_ip_be_local {
@@ -67,7 +69,7 @@ async fn main() {
         &lhost.to_string().green().bold()
     ));
 
-    let _rhost: Option<Ipv4Addr> = utils::get_rhost(&greed);
+    let rhost: Option<Ipv4Addr> = utils::get_rhost(&greed);
 
     // 2. get data from xmind file
     let xmind_json: JsonValue = xmind::get_content_from_xmind();
@@ -125,9 +127,44 @@ async fn main() {
         Icons::Rocket,
         Icons::Rocket
     ));
+
+    print_welcome(&lhost.to_string(), &lport_tool, &lport_revshell, &rhost.unwrap().to_string().as_str());
+
+    print!("query: ");
+    let _ = io::stdout().flush();
     let lines = std::io::stdin().lines();
     for line in lines {
-        println!("bye: {}", line.unwrap());
-        exit(0);
+
+        execute!(
+            std::io::stdout(),
+            Clear(ClearType::All),
+            crossterm::cursor::MoveTo(0, 0)
+        );
+        print_welcome(&lhost.to_string(), &lport_tool, &lport_revshell, &rhost.unwrap().to_string().as_str());
+        let line_str = line.unwrap();
+
+        if !line_str.is_empty() {
+            let _ = cheatsheets::print_cheat_sheets(line_str.as_str(), lhost.to_string().as_str(), rhost.unwrap().to_string().as_str());
+        }
+
+        print!("query: ");
+        let _ = io::stdout().flush();
     }
+}
+
+
+fn print_welcome(lhost: &str, lport_tools: &u16, lport_revshell: &u16, rhost: &str) {
+    println!(" ┌───────────────────────────────────────────────────────────┐   ");
+    println!(
+        " │  {}{}              tools: {:<20}       │",
+        Icons::Medal.to_string().bold().yellow(),
+        "Winner".yellow().bold(),
+        format!("http://{}:{}", lhost, lport_tools).blue()
+    );
+    println!(" │    {}       revshels: {:<20}       │", "by n4zz4r1".white(), format!("http://{}:{}", lhost, lport_revshell).blue());
+    println!(" │                        {:<20}               │", format!("RHOST: {}", rhost).green());
+
+    println!(" └───────────────────────────────────────────────────────────┘   ");
+
+    // {}{:<24}
 }

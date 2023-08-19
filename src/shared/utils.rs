@@ -5,6 +5,7 @@
 use std::net::IpAddr;
 use std::process::exit;
 use std::time::Duration;
+use clap::Command;
 
 use local_ip_address::{list_afinet_netifas, local_ip};
 
@@ -61,3 +62,7 @@ pub fn get_rhost(greed: &Cli) -> Option<Ipv4Addr> {
         },
     }
 }
+
+// pub fn cls() {
+//     Command::new("clear").expe
+// }
