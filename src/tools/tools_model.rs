@@ -76,6 +76,9 @@ impl Tool {
     pub fn os(&self) -> &str {
         &self.os
     }
+    pub fn link_name(&self) -> String {
+        self.os().to_owned() + "/" + self.title()
+    }
 }
 
 impl XMindJson<Tools> for Tools {
@@ -147,5 +150,11 @@ impl Tools {
             .iter()
             .find(|tool| tool.title == tool_name)
             .unwrap()
+    }
+    pub fn get_all_tools(&self) -> Vec<Tool> {
+        self.tools_by_os
+            .values()
+            .flat_map(|os| os.clone())
+            .collect()
     }
 }

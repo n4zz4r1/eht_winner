@@ -18,3 +18,4 @@ clap = { version = "4.3.21", features = ["derive"] }
 hyper = { version = "0.14", features = ["full"] }
 rustfmt = "0.10.0"
 crossterm = "0.27.0"
+lazy_static = "1.4.0"

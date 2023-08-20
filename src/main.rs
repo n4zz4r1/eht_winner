@@ -11,8 +11,9 @@
 */
 
 use std::convert::Infallible;
+use std::io::{self, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::process::exit;
+use std::sync::Arc;
 
 use clap::Parser;
 use colored::Colorize;
@@ -22,10 +23,12 @@ use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use json::JsonValue;
 use tokio::runtime;
-use tokio::time::{Instant};
+use tokio::sync::Mutex;
+use tokio::time::Instant;
 
 use crate::greed::Cli;
 use crate::revshell::*;
+use crate::revshell::revshell_model::RevShells;
 use crate::shared::logger::*;
 use crate::shared::xmind::XMindJson;
 use crate::shared::{utils, xmind};
@@ -33,13 +36,12 @@ use crate::tools::tools_model::*;
 use crate::tools::*;
 use crate::utils::format_duration;
 
+mod cheatsheets;
 mod greed;
 mod revshell;
 mod shared;
 mod tools;
-mod cheatsheets;
 
-use std::io::{self, Write};
 #[tokio::main]
 async fn main() {
     let greed = Cli::parse();
@@ -49,12 +51,13 @@ async fn main() {
     let lport_tool = 8080;
     let lport_revshell = 8081;
 
-    execute!(
-            std::io::stdout(),
-            Clear(ClearType::All),
-            crossterm::cursor::MoveTo(0, 0)
-        );
+    let lport_current = Arc::new(Mutex::new(4444));
 
+    let _ = execute!(
+        std::io::stdout(),
+        Clear(ClearType::All),
+        crossterm::cursor::MoveTo(0, 0)
+    );
 
     // 1. env configuration
     let lhost: IpAddr = if should_ip_be_local {
@@ -81,6 +84,10 @@ async fn main() {
     // 3. Tools module
     let tools = Tools::from_root_json(&xmind_json);
 
+    // 4. Revshell module
+    let rev_shells = RevShells::from_root_json(&xmind_json);
+    logger_info!("{}", format!("{} {} found: {}", rev_shells.revshells().len().to_string().green(),"revshels".green().bold(), rev_shells.to_string().green()));
+
     // __________________________________________________
 
     let runtime = runtime::Builder::new_multi_thread()
@@ -89,7 +96,7 @@ async fn main() {
         .build()
         .unwrap();
 
-    // A `MakeService` that produces a `Service` to handle each connection.
+    // Tools Server
     let make_service_tools = make_service_fn(move |_conn: &AddrStream| {
         let tools = tools.clone();
         let service =
@@ -99,28 +106,22 @@ async fn main() {
 
     let tools_http_server =
         hyper::Server::bind(&SocketAddr::new(lhost, lport_tool)).serve(make_service_tools);
-    runtime.spawn(tools_http_server);
 
-    let revshell_make_svc = make_service_fn(|_conn| async {
-        // service_fn converts our function into a `Service`
-        Ok::<_, Infallible>(service_fn(revshell_server::listen))
+    // Revshell Server
+    let make_service_revshell = make_service_fn(move |_conn: &AddrStream| {
+        let revshells = rev_shells.clone();
+        let lhost_clone = lhost.clone();
+        let service =
+            service_fn(move |req| revshell_server::listen(req, revshells.clone(), lhost_clone.to_string()));
+        async move { Ok::<_, Infallible>(service) }
     });
+
     let revshell_http_server =
-        hyper::Server::bind(&SocketAddr::new(lhost, lport_revshell)).serve(revshell_make_svc);
+        hyper::Server::bind(&SocketAddr::new(lhost, lport_revshell)).serve(make_service_revshell);
+
+
+    runtime.spawn(tools_http_server);
     runtime.spawn(revshell_http_server);
-
-    // done
-    logger_info!(format!(
-        "{} Tools server started at {}",
-        Icons::Rocket,
-        format!("http://{}:{}", lhost, lport_tool).blue()
-    ));
-    logger_info!(format!(
-        "{} Revshell server started at {}",
-        Icons::Rocket,
-        format!("http://{}:{}", lhost, lport_revshell).blue()
-    ));
-
     logger_info!(format!(
         "servers started in {} {}{}",
         format_duration(&start_time.elapsed()),
@@ -128,30 +129,42 @@ async fn main() {
         Icons::Rocket
     ));
 
-    print_welcome(&lhost.to_string(), &lport_tool, &lport_revshell, &rhost.unwrap().to_string().as_str());
+    print_welcome(
+        &lhost.to_string(),
+        &lport_tool,
+        &lport_revshell,
+        rhost.unwrap().to_string().as_str(),
+    );
 
-    print!("query: ");
+    // print!("query: ");
     let _ = io::stdout().flush();
     let lines = std::io::stdin().lines();
     for line in lines {
-
-        execute!(
+        let _ = execute!(
             std::io::stdout(),
             Clear(ClearType::All),
             crossterm::cursor::MoveTo(0, 0)
         );
-        print_welcome(&lhost.to_string(), &lport_tool, &lport_revshell, &rhost.unwrap().to_string().as_str());
+        print_welcome(
+            &lhost.to_string(),
+            &lport_tool,
+            &lport_revshell,
+            rhost.unwrap().to_string().as_str(),
+        );
         let line_str = line.unwrap();
 
         if !line_str.is_empty() {
-            let _ = cheatsheets::print_cheat_sheets(line_str.as_str(), lhost.to_string().as_str(), rhost.unwrap().to_string().as_str());
+            let _ = cheatsheets::print_cheat_sheets(
+                line_str.as_str(),
+                lhost.to_string().as_str(),
+                rhost.unwrap().to_string().as_str(),
+            );
         }
 
-        print!("query: ");
+        // print!("query: ");
         let _ = io::stdout().flush();
     }
 }
-
 
 fn print_welcome(lhost: &str, lport_tools: &u16, lport_revshell: &u16, rhost: &str) {
     println!(" ┌───────────────────────────────────────────────────────────┐   ");
@@ -161,8 +174,15 @@ fn print_welcome(lhost: &str, lport_tools: &u16, lport_revshell: &u16, rhost: &s
         "Winner".yellow().bold(),
         format!("http://{}:{}", lhost, lport_tools).blue()
     );
-    println!(" │    {}       revshels: {:<20}       │", "by n4zz4r1".white(), format!("http://{}:{}", lhost, lport_revshell).blue());
-    println!(" │                        {:<20}               │", format!("RHOST: {}", rhost).green());
+    println!(
+        " │    {}       revshels: {:<20}       │",
+        "by n4zz4r1".white(),
+        format!("http://{}:{}", lhost, lport_revshell).blue()
+    );
+    println!(
+        " │                        {:<20}               │",
+        format!("RHOST: {}", rhost).green()
+    );
 
     println!(" └───────────────────────────────────────────────────────────┘   ");
 

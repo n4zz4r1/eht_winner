@@ -39,7 +39,8 @@ pub trait XMindJson<T> {
 
 pub fn get_content_from_xmind() -> JsonValue {
     let path: &str = "/opt/winner/winner.xmind";
-    let file: std::fs::File = std::fs::File::open(path).expect("/opt/winner/winner.xmind not found");
+    let file: std::fs::File =
+        std::fs::File::open(path).expect("/opt/winner/winner.xmind not found");
     let mut zip_file = zip::ZipArchive::new(file).expect("winner.xmind is not a zip file");
     let mut content_file = zip_file
         .by_name("content.json")

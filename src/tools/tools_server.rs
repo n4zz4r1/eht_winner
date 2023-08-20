@@ -14,6 +14,16 @@ pub async fn listen<T>(
     req: Request<T>,
     _download_mode: bool,
 ) -> Result<Response<Body>, Infallible> {
+    if &req.uri().to_string() == "/" {
+        return return_list_of_tools(&tools).await;
+    } else if &req.uri().to_string() == "/favicon.ico" {
+        // ignore annoying favicon
+        return Ok(Builder::new()
+            .status(StatusCode::NOT_FOUND)
+            .body(Body::empty())
+            .unwrap());
+    }
+
     let parts: &Vec<&str> = &req.uri().path().split('/').collect();
     if parts.len() == 3 && tools.exists(parts[1], parts[2]) {
         let tool = tools.get_by_os_and_name(parts[1], parts[2]);
@@ -36,8 +46,30 @@ pub async fn listen<T>(
     }
 }
 
+async fn return_list_of_tools(tools: &Tools) -> Result<Response<Body>, Infallible> {
+    let mut result_html = String::new();
+    result_html.push_str("<!DOCTYPE html><html><head><!-- <link rel=\"icon\" href=\"favicon.ico\" type=\"image/x-icon\"> --></head><body>");
+    for tool in tools.get_all_tools() {
+        result_html.push_str(
+            format!(
+                "{} / <a href=\"{}\">{}</a><br>",
+                tool.os(),
+                tool.link_name(),
+                tool.title()
+            )
+            .as_str(),
+        );
+    }
+    result_html.push_str("</html>");
+
+    Ok(Builder::new()
+        .status(StatusCode::OK)
+        .body(Body::from(result_html))
+        .unwrap())
+}
+
 async fn get_from_local_file(tool: &Tool) -> Result<Response<Body>, Infallible> {
-    let path = format!("/opt/winner/local/{}/{}", tool.os(), tool.title());
+    let path = format!("/opt/winner/scripts/{}/{}", tool.os(), tool.title());
     match fs::read(&path).await {
         Ok(file) => {
             logger_debug!(format!(

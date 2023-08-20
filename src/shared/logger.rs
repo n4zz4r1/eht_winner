@@ -60,27 +60,17 @@ impl Level {
     }
 }
 
-
 #[macro_export]
 macro_rules! logger_summary {
     ($summary:expr) => {
-        println!(
-            "  | {}",
-            $summary.bold()
-        )
+        println!("  | {}", $summary.bold())
     };
 }
-
 
 #[macro_export]
 macro_rules! logger_cmd {
     ($summary:expr, $cmd:expr, $descr:expr) => {
-        println!(
-            "  {} {} {}",
-            $summary.bold(),
-            $cmd,
-            $descr.purple()
-        )
+        println!("  {} {} {}", $summary.bold(), $cmd, $descr.purple())
     };
 }
 

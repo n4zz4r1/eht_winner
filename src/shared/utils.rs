@@ -5,7 +5,6 @@
 use std::net::IpAddr;
 use std::process::exit;
 use std::time::Duration;
-use clap::Command;
 
 use local_ip_address::{list_afinet_netifas, local_ip};
 
@@ -53,10 +52,9 @@ pub fn get_rhost(greed: &Cli) -> Option<Ipv4Addr> {
                 Some(*ipv4)
             }
             Err(_) => {
-                logger_warn!(format!(
-                    "{} not set, as it is malformed: `{}`",
-                    "RHOST", &rhost_p
-                ).yellow());
+                logger_warn!(
+                    format!("{} not set, as it is malformed: `{}`", "RHOST", &rhost_p).yellow()
+                );
                 None
             }
         },
