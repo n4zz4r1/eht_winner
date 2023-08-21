@@ -22,6 +22,7 @@ use crossterm::terminal::{Clear, ClearType};
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use json::JsonValue;
+use tmux_interface::{HasSession, NewSession, NewWindow, SendKeys, SplitWindow, Tmux, TmuxCommand};
 use tokio::runtime;
 use tokio::sync::Mutex;
 use tokio::time::Instant;
@@ -129,6 +130,23 @@ async fn main() {
         Icons::Rocket
     ));
 
+
+    let target_session = "example_1";
+
+    // tmux new -d -s example_1 ; neww ; splitw -v
+    Tmux::new()
+        .add_command(NewSession::new().detached().session_name(target_session))
+        .add_command(SendKeys::new().key("p").build())
+        .output()
+        .unwrap();
+
+    // Tmux::with_command(HasSession::new().target_session(target_session)).add_command(SendKeys::key("d"));
+
+    logger_info!(format!("session open at {}", target_session));
+
+
+
+
     print_welcome(
         &lhost.to_string(),
         &lport_tool,
@@ -151,6 +169,7 @@ async fn main() {
             &lport_revshell,
             rhost.unwrap().to_string().as_str(),
         );
+
         let line_str = line.unwrap();
 
         if !line_str.is_empty() {
