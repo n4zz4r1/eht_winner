@@ -22,7 +22,7 @@ use crossterm::terminal::{Clear, ClearType};
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use json::JsonValue;
-use tmux_interface::{HasSession, NewSession, NewWindow, SendKeys, SplitWindow, Tmux, TmuxCommand};
+use tmux_interface::{NewSession, SendKeys, Tmux};
 use tokio::runtime;
 use tokio::sync::Mutex;
 use tokio::time::Instant;
@@ -167,7 +167,7 @@ async fn main() {
             &lhost.to_string(),
             &lport_tool,
             &lport_revshell,
-            rhost.unwrap().to_string().as_str(),
+            rhost.unwrap().to_string().as_str()
         );
 
         let line_str = line.unwrap();
@@ -177,6 +177,7 @@ async fn main() {
                 line_str.as_str(),
                 lhost.to_string().as_str(),
                 rhost.unwrap().to_string().as_str(),
+                &*lport_current.lock().await.to_string()
             );
         }
 
@@ -188,18 +189,18 @@ async fn main() {
 fn print_welcome(lhost: &str, lport_tools: &u16, lport_revshell: &u16, rhost: &str) {
     println!(" ┌───────────────────────────────────────────────────────────┐   ");
     println!(
-        " │  {}{}              tools: {:<20}       │",
+        " │  {}{}              tools: {:<28}│",
         Icons::Medal.to_string().bold().yellow(),
         "Winner".yellow().bold(),
         format!("http://{}:{}", lhost, lport_tools).blue()
     );
     println!(
-        " │    {}       revshels: {:<20}       │",
+        " │    {}       revshels: {:<28}│",
         "by n4zz4r1".white(),
         format!("http://{}:{}", lhost, lport_revshell).blue()
     );
     println!(
-        " │                        {:<20}               │",
+        " │                        {:<28}       │",
         format!("RHOST: {}", rhost).green()
     );
 
