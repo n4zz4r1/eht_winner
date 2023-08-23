@@ -141,7 +141,7 @@ fn paint_and_replace(line: &str, word_to_paint: &str, color: Color, replace_str:
 }
 
 fn highline(line: &str, word_to_paint: &str) -> String {
-    let highline = "\x1b[40m";
+    let highline = "\x1b[33m";
     let reset_color = "\x1b[0m";
     line.replace(
         word_to_paint,

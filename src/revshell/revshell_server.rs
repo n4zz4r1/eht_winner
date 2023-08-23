@@ -3,7 +3,8 @@
   [ ] refactor
 */
 use std::convert::Infallible;
-use std::fs;
+use tokio::fs;
+
 use std::process::Command;
 
 use hyper::{Body, Request, Response, StatusCode};
@@ -21,10 +22,12 @@ pub async fn listen(req: Request<Body>, revshells: RevShells, lhost: String) -> 
 
     match revshells.revshells().iter().find(|revshell| "/".to_owned() + &revshell.link_name() == req.uri().to_string()) {
         Some(revshell) => {
-            if revshell.labels().contains(&String::from("msfvenom")){
+            if revshell.labels().contains(&String::from("msfvenom")) {
                 by_type_msfvenon(revshell, lhost).await
             } else if revshell.labels().contains(&String::from("xmind")) {
                 by_type_xmind(revshell, lhost).await
+            } else if revshell.labels().contains(&String::from("local")) {
+                get_from_local_file(revshell, lhost.as_str()).await
             } else {
                 Ok(Builder::new()
                     .status(StatusCode::NOT_FOUND)
@@ -61,6 +64,7 @@ async fn return_list_of_revshells(revshells: &RevShells) -> Result<Response<Body
         .body(Body::from(result_html))
         .unwrap())
 }
+
 async fn by_type_xmind(revshell: &Revshell, lhost: String) -> Result<Response<Body>, Infallible> {
     let shared_data = SHARED_DATA.clone();
     let lport = shared_data.lport_current.lock().await;
@@ -102,7 +106,7 @@ async fn by_type_msfvenon(revshell: &Revshell, lhost: String) -> Result<Response
 
                 return Ok(Builder::new()
                     .status(StatusCode::OK)
-                    .body(Body::from(fs::read(revshell.file_path()).unwrap()))
+                    .body(Body::from(std::fs::read(revshell.file_path()).unwrap()))
                     .unwrap());
             } else {
                 return Ok(Builder::new()
@@ -116,6 +120,41 @@ async fn by_type_msfvenon(revshell: &Revshell, lhost: String) -> Result<Response
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::empty())
                 .unwrap());
+        }
+    }
+}
+
+async fn get_from_local_file(revshell: &Revshell, lhost: &str) -> Result<Response<Body>, Infallible> {
+    let shared_data = SHARED_DATA.clone();
+    let lport = shared_data.lport_current.lock().await;
+
+    let path = format!("/opt/winner/scripts/revshells/{}", revshell.title());
+    match fs::read_to_string(&path).await {
+        Ok(file) => {
+            logger_debug!(format!(
+                "{} revshell > LOCAL file {} downloaded.",
+                Icons::Download.to_string().blue().bold(),
+                revshell.title().blue().bold()
+            ));
+            let mut contents = String::from(file);
+            contents = contents.replace("$LHOST", lhost);
+            contents = contents.replace("$LPORT", &*lport.to_string());
+
+            Ok(Builder::new()
+                .status(StatusCode::OK)
+                .body(Body::from(contents))
+                .unwrap())
+        }
+        Err(_) => {
+            logger_trace!(format!(
+                "revshell > {}LOCAL file {} doesn't exists.",
+                Icons::Error.to_string(),
+                &path
+            ));
+            Ok(Builder::new()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .unwrap())
         }
     }
 }

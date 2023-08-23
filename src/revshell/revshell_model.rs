@@ -89,8 +89,8 @@ impl XMindJson<RevShells> for RevShells {
         let mut all_revshels: Vec<JsonValue> = Vec::new();
         Self::recursive_search_with_label(
             &mut all_revshels,
-            &root_json[0]["rootTopic"],
-            &vec!["msfvenom","xmind"],
+            &root_json[0]["rootTopic"]["children"]["attached"].members().find(|member| member["title"].to_string() == "Reverse Shell").unwrap(),
+            &vec!["msfvenom","xmind","local"],
             5,
         );
 

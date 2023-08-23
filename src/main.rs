@@ -52,7 +52,7 @@ async fn main() {
     let lport_tool = 8080;
     let lport_revshell = 8081;
 
-    let lport_current = Arc::new(Mutex::new(4444));
+    let lport_current = Arc::new(Mutex::new(5000));
 
     let _ = execute!(
         std::io::stdout(),
