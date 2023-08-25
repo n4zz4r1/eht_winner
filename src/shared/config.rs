@@ -15,5 +15,5 @@ impl SharedConfig {
 }
 
 lazy_static! {
-    pub static ref SHARED_DATA: Arc<SharedConfig> = Arc::new(SharedConfig::new(5000));
+    pub static ref SHARED_DATA: Arc<SharedConfig> = Arc::new(SharedConfig::new(0));
 }

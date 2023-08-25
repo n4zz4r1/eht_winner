@@ -46,11 +46,11 @@ pub async fn listen(req: Request<Body>, revshells: RevShells, lhost: String) -> 
 
 async fn return_list_of_revshells(revshells: &RevShells) -> Result<Response<Body>, Infallible> {
     let mut result_html = String::new();
-    result_html.push_str("<!DOCTYPE html><html><head><!-- <link rel=\"icon\" href=\"favicon.ico\" type=\"image/x-icon\"> --></head><body>");
+    result_html.push_str("<!DOCTYPE html><html><head><!-- <link rel=\"icon\" href=\"favicon.ico\" type=\"image/x-icon\"> --></head><body style=\"background-color:black;color:white\">");
     for revshell in revshells.revshells() {
         result_html.push_str(
             format!(
-                "{} / <a href=\"{}\">{}</a><br>",
+                "{} / <a style=\"color:white\" href=\"{}\">{}</a><br>",
                 revshell.rev_type(),
                 revshell.link_name(),
                 revshell.title()

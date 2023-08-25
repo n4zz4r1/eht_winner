@@ -13,7 +13,6 @@
 use std::convert::Infallible;
 use std::io::{self, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::sync::Arc;
 
 use clap::Parser;
 use colored::Colorize;
@@ -24,7 +23,6 @@ use hyper::service::{make_service_fn, service_fn};
 use json::JsonValue;
 use tmux_interface::{NewSession, SendKeys, Tmux};
 use tokio::runtime;
-use tokio::sync::Mutex;
 use tokio::time::Instant;
 
 use crate::greed::Cli;
@@ -33,6 +31,7 @@ use crate::revshell::revshell_model::RevShells;
 use crate::shared::logger::*;
 use crate::shared::xmind::XMindJson;
 use crate::shared::{utils, xmind};
+use crate::shared::config::SHARED_DATA;
 use crate::tools::tools_model::*;
 use crate::tools::*;
 use crate::utils::format_duration;
@@ -51,8 +50,20 @@ async fn main() {
     let start_time: Instant = Instant::now();
     let lport_tool = 8080;
     let lport_revshell = 8081;
+    let mut lport :u16 = 4444;
 
-    let lport_current = Arc::new(Mutex::new(5000));
+    {
+        // Clone the Arc for the current thread
+        let shared_data = SHARED_DATA.clone();
+        let mut lport_mut = shared_data.lport_current.lock().await;
+        match greed.lport {
+            Some(lport_r) => {
+                *lport_mut = lport_r.clone();
+                lport = lport_r.clone();
+            }
+            None => {}
+        }
+    }
 
     let _ = execute!(
         std::io::stdout(),
@@ -152,6 +163,7 @@ async fn main() {
         &lport_tool,
         &lport_revshell,
         rhost.unwrap().to_string().as_str(),
+        &lport
     );
 
     // print!("query: ");
@@ -167,7 +179,8 @@ async fn main() {
             &lhost.to_string(),
             &lport_tool,
             &lport_revshell,
-            rhost.unwrap().to_string().as_str()
+            rhost.unwrap().to_string().as_str(),
+            &lport
         );
 
         let line_str = line.unwrap();
@@ -177,7 +190,7 @@ async fn main() {
                 line_str.as_str(),
                 lhost.to_string().as_str(),
                 rhost.unwrap().to_string().as_str(),
-                &*lport_current.lock().await.to_string()
+                &lport.to_string(),
             );
         }
 
@@ -186,7 +199,7 @@ async fn main() {
     }
 }
 
-fn print_welcome(lhost: &str, lport_tools: &u16, lport_revshell: &u16, rhost: &str) {
+fn print_welcome(lhost: &str, lport_tools: &u16, lport_revshell: &u16, rhost: &str, lport: &u16) {
     println!(" ┌───────────────────────────────────────────────────────────┐   ");
     println!(
         " │  {}{}              tools: {:<28}│",
@@ -202,6 +215,10 @@ fn print_welcome(lhost: &str, lport_tools: &u16, lport_revshell: &u16, rhost: &s
     println!(
         " │                        {:<28}       │",
         format!("RHOST: {}", rhost).green()
+    );
+    println!(
+        " │                    {:<28}           │",
+        format!("REV LPORT: {}", lport).green()
     );
 
     println!(" └───────────────────────────────────────────────────────────┘   ");

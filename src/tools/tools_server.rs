@@ -48,11 +48,11 @@ pub async fn listen<T>(
 
 async fn return_list_of_tools(tools: &Tools) -> Result<Response<Body>, Infallible> {
     let mut result_html = String::new();
-    result_html.push_str("<!DOCTYPE html><html><head><!-- <link rel=\"icon\" href=\"favicon.ico\" type=\"image/x-icon\"> --></head><body>");
+    result_html.push_str("<!DOCTYPE html><html><head><!-- <link rel=\"icon\" href=\"favicon.ico\" type=\"image/x-icon\"> --></head><body style=\"background-color:black;color:white\">");
     for tool in tools.get_all_tools() {
         result_html.push_str(
             format!(
-                "{} / <a href=\"{}\">{}</a><br>",
+                "{} / <a style=\"color:white\" href=\"{}\">{}</a><br>",
                 tool.os(),
                 tool.link_name(),
                 tool.title()

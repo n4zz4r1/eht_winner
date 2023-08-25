@@ -63,7 +63,7 @@ impl Level {
 #[macro_export]
 macro_rules! logger_summary {
     ($summary:expr) => {
-        println!("  | {}", $summary.bold())
+        println!("\n {}", $summary.to_uppercase().bold().purple())
     };
 }
 

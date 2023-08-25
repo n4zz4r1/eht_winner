@@ -12,6 +12,9 @@ pub struct Cli {
     /// Provided rhost ip
     #[arg(long)]
     pub rhost: Option<String>,
+    /// Provided lport ip for revshell
+    #[arg(long)]
+    pub lport: Option<u16>,
     /// Flag to use local ip address.
     #[arg(short, long, default_value_t = false)]
     pub local: bool,

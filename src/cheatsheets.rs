@@ -64,7 +64,7 @@ fn find_on_file(
         let line_str = line?.to_string();
 
         if line_str.starts_with('#') {
-            subject = line_str.clone();
+            subject = line_str.clone().replace("|","").to_string();
             subject_changed = true;
         } else if line_str.starts_with('|')
             && !line_str.starts_with("| **Command")
@@ -73,7 +73,7 @@ fn find_on_file(
             && !line_str.starts_with("| **")
         {
             let row: Vec<&str> = line_str.split('|').collect();
-            let mut command: String = row[1].replace('`', "").trim().to_string();
+            let mut command: String = row[1].trim().to_string();
             let mut descr: String = row[2].trim().to_string();
 
             // if command.to_uppercase().contains(&input.to_uppercase()) || show_all {
@@ -82,11 +82,21 @@ fn find_on_file(
                     || (command.clone().to_lowercase().contains(keyword) && input_list.len() > 1)
             }) || (show_all && input_list.len() == 1)
             {
+                //
+
+                // let mut cmd_in_line: String = String::from("");
+                // if let Some(capture) = Regex::new(r"`([^`]*)`").unwrap().captures(command.as_str()).and_then(|capture| capture.get(1)) {
+                //     cmd_in_line = capture.as_str().to_string();
+                // }
+
+                // command = paint_and_replace(command.as_str(), format!("`{}`", &cmd_in_line).as_str(), Color::Green, &cmd_in_line);
+
                 // replace RHOST and LHOST
                 command = paint_and_replace(command.as_str(), "$RHOST", Color::Green, rhost);
                 command = paint_and_replace(command.as_str(), "$LHOST", Color::Blue, lhost);
                 command = paint_and_replace(command.as_str(), "$LPORT", Color::Blue, lport);
-                command = paint_and_replace(command.as_str(), "$PIPE", Color::Blue, "|");
+                command = paint_and_replace(command.as_str(), "$PIPE", Color::White, "|");
+
 
                 // highline keywords
                 for keyword in input_list.clone() {
@@ -95,12 +105,12 @@ fn find_on_file(
                 }
 
                 if first_time {
-                    print_first_time(path.path().file_name().unwrap().to_str().as_ref().unwrap());
+                    print_first_time(path.path().file_name().unwrap().to_str().as_ref().unwrap(), show_all);
                     first_time = false;
                 }
 
                 if subject_changed {
-                    logger_summary!(subject.replace('#', "").to_string().trim());
+                    logger_summary!(subject.replace(['#','|'], "").to_string().trim());
                     subject_changed = false;
                 }
 
@@ -135,9 +145,8 @@ fn paint_and_replace(line: &str, word_to_paint: &str, color: Color, replace_str:
         word_to_paint,
         &ColoredString::from(replace_str)
             .color(color)
-            .bold()
+            .bold().to_string()
     )
-    .to_string()
 }
 
 fn highline(line: &str, word_to_paint: &str) -> String {
@@ -145,12 +154,18 @@ fn highline(line: &str, word_to_paint: &str) -> String {
     let reset_color = "\x1b[0m";
     line.replace(
         word_to_paint,
-        format!("{}{}{}", highline, word_to_paint, reset_color).as_str(),
+        format!("{}{}{}", highline, word_to_paint.bold(), reset_color).as_str(),
     )
     .to_string()
 }
 
-fn print_first_time(path: &str) {
+fn print_first_time(path: &str, _show_all: bool) {
+    // let path_str = if show_all {
+    //     path.yellow().to_string()
+    // } else {
+    //     &path.to_string()
+    // };
+
     println!(" ┌──────────────────────────────┐   ");
     println!(
         " │  {}{:<24}  │",
