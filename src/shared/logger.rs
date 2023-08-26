@@ -51,11 +51,11 @@ pub enum Level {
 impl Level {
     pub fn to_log_str(&self) -> String {
         match self {
-            Level::Error => "[ERROR] ".red().to_string(),
+            Level::Error => " [ERROR] ".red().to_string(),
             Level::Warn => " [WARN] ".yellow().to_string(),
             Level::Info => " [INFO] ".green().to_string(),
-            Level::Trace => "[TRACE] ".white().to_string(),
-            Level::Debug => "[DEBUG] ".blue().to_string(),
+            Level::Trace => " [TRACE] ".white().to_string(),
+            Level::Debug => " [DEBUG] ".blue().to_string(),
         }
     }
 }
