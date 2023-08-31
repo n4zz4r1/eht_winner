@@ -142,18 +142,18 @@ async fn main() {
     ));
 
 
-    let target_session = "example_1";
+    // let target_session = "example_1";
 
-    // tmux new -d -s example_1 ; neww ; splitw -v
-    Tmux::new()
-        .add_command(NewSession::new().detached().session_name(target_session))
-        .add_command(SendKeys::new().key("p").build())
-        .output()
-        .unwrap();
+    // // tmux new -d -s example_1 ; neww ; splitw -v
+    // Tmux::new()
+    //     .add_command(NewSession::new().detached().session_name(target_session))
+    //     .add_command(SendKeys::new().key("p").build())
+    //     .output()
+    //     .unwrap();
 
     // Tmux::with_command(HasSession::new().target_session(target_session)).add_command(SendKeys::key("d"));
 
-    logger_info!(format!("session open at {}", target_session));
+    // logger_info!(format!("session open at {}", target_session));
 
 
 
